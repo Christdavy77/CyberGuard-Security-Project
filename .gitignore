@@ -1,0 +1,11 @@
+# Fichiers de compilation .NET
+[Bb]in/
+[Oo]bj/
+
+# Paramètres personnels et secrets
+.vs/
+.vscode/
+appsettings.Development.json
+
+# Fichiers système
+.DS_Store

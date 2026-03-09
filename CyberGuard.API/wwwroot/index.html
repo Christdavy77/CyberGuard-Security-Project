@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberGuard Pro - SOC Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; }
+        .cyber-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; height: 100%; }
+        
+        /* Styles des cartes de stats */
+        .stat-card { border-left: 4px solid #38bdf8; transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .bg-critical { border-left-color: #ef4444; }
+        .bg-high { border-left-color: #f97316; }
+        
+        /* Couleurs des textes de stats - CORRECTION ICI */
+        .stat-label { color: #94a3b8; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
+        .stat-value { color: #ffffff; font-weight: 800; } /* Blanc pur pour une visibilité max */
+        
+        .table { color: #e2e8f0; }
+        .badge-Critical { background-color: #7f1d1d; color: #fecaca; }
+        .badge-High { background-color: #7c2d12; color: #fed7aa; }
+        .badge-Medium { background-color: #713f12; color: #fef08a; }
+        .badge-Low { background-color: #064e3b; color: #d1fae5; }
+        .form-control, .form-select { background-color: #1e293b; border: 1px solid #334155; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container py-4">
+    <header class="pb-3 mb-4 border-bottom d-flex justify-content-between align-items-center">
+        <h1 class="h3 fw-bold text-info">🛡️ CyberGuard <span class="text-white fw-light">SOC Dashboard</span></h1>
+        <span class="badge bg-success" id="status-badge">SYSTÈME EN LIGNE</span>
+    </header>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="cyber-card stat-card p-3 shadow-sm">
+                <div class="stat-label">Total Menaces</div>
+                <div class="h2 stat-value" id="stat-total">0</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="cyber-card stat-card bg-critical p-3 shadow-sm">
+                <div class="stat-label text-danger">Critique</div>
+                <div class="h2 fw-bold text-danger" id="stat-critical">0</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="cyber-card stat-card bg-high p-3 shadow-sm">
+                <div class="stat-label text-warning">Élevé</div>
+                <div class="h2 fw-bold text-warning" id="stat-high">0</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="cyber-card stat-card p-3 shadow-sm">
+                <div class="stat-label text-info">Risque Global</div>
+                <div class="h2 fw-bold text-info" id="stat-risk">STABLE</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="cyber-card p-4 shadow-sm border-info border-opacity-25">
+                <h3 class="h5 mb-3 text-info">Nouvelle Détection</h3>
+                <form id="vulnForm">
+                    <div class="mb-3">
+                        <label class="form-label small">Nom de la vulnérabilité</label>
+                        <input type="text" id="name" class="form-control form-control-sm" placeholder="ex: SQL Injection" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Analyse technique</label>
+                        <textarea id="description" class="form-control form-control-sm" rows="3" placeholder="Détails de la faille..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Niveau de Sévérité</label>
+                        <select id="severity" class="form-select form-select-sm">
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                            <option value="Critical">Critical</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-info w-100 fw-bold btn-sm text-dark">DÉPLOYER L'ALERTE</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="cyber-card p-4 shadow-sm">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr class="text-muted small">
+                                <th>ANALYSE TECHNIQUE</th>
+                                <th>SÉVÉRITÉ</th>
+                                <th class="text-end">ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vulnList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:5247/api/Vulnerabilities';
+
+    async function loadData() {
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            
+            // Mise à jour des Stats
+            const criticalCount = data.filter(v => v.severity === 'Critical').length;
+            const highCount = data.filter(v => v.severity === 'High').length;
+            
+            document.getElementById('stat-total').innerText = data.length;
+            document.getElementById('stat-critical').innerText = criticalCount;
+            document.getElementById('stat-high').innerText = highCount;
+            
+            const riskLevel = document.getElementById('stat-risk');
+            if (criticalCount > 0) { 
+                riskLevel.innerText = "ALERTE MAX"; 
+                riskLevel.className = "h2 fw-bold text-danger"; 
+            } else if (highCount > 2) { 
+                riskLevel.innerText = "INSTABLE"; 
+                riskLevel.className = "h2 fw-bold text-warning"; 
+            } else { 
+                riskLevel.innerText = "STABLE"; 
+                riskLevel.className = "h2 fw-bold text-info"; 
+            }
+
+            // Remplissage du tableau
+            const list = document.getElementById('vulnList');
+            list.innerHTML = '';
+            data.forEach(v => {
+                list.innerHTML += `
+                    <tr style="border-bottom: 1px solid #334155">
+                        <td class="py-3">
+                            <div class="fw-bold text-white">${v.name}</div>
+                            <div class="small text-muted">${v.description}</div>
+                        </td>
+                        <td class="py-3"><span class="badge badge-${v.severity}">${v.severity}</span></td>
+                        <td class="text-end py-3">
+                            <button class="btn btn-outline-danger btn-sm border-0" onclick="deleteVuln(${v.id})">Supprimer</button>
+                        </td>
+                    </tr>`;
+            });
+        } catch (e) { console.error("API non disponible", e); }
+    }
+
+    document.getElementById('vulnForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            name: document.getElementById('name').value,
+            description: document.getElementById('description').value,
+            severity: document.getElementById('severity').value
+        };
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if(res.ok) { 
+            document.getElementById('vulnForm').reset(); 
+            loadData(); 
+        }
+    });
+
+    async function deleteVuln(id) {
+        if(confirm("Confirmer la suppression ?")) {
+            await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+            loadData();
+        }
+    }
+
+    loadData();
+</script>
+</body>
+</html>

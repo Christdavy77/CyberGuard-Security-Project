@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="CyberGuard.API/CyberGuard.API.csproj" />
+  <Project Path="CyberGuard.Application/CyberGuard.Application.csproj" />
+  <Project Path="CyberGuard.Client/CyberGuard.Client.csproj" />
+  <Project Path="CyberGuard.Domain/CyberGuard.Domain.csproj" />
+  <Project Path="CyberGuard.Infrastructure/CyberGuard.Infrastructure.csproj" />
+</Solution>
